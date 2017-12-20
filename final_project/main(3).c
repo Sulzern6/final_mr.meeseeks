@@ -34,7 +34,7 @@ unsigned int ADCRead0(void)
     while(!(ADC12IFGR0 & ADC12IFG0));
     return ADC12MEM0;
 }*/
-int UARTContrl = 0;
+int UARTContrl = 1;
 unsigned int control = 0x00;
 void SteeringSet(void)
 {
@@ -108,14 +108,14 @@ void SteeringSetAnalogXY(void)
     P2OUT = 0x08;
     P3OUT = 0x02;
 
-    } else if(CurrentValueX >= 0x0F00)
+    } else if(CurrentValueX <= 0x0010)
     {
         P9OUT |= BIT4;
                     P4OUT |= BIT7;
                     P2OUT = 0x10;
                     P3OUT = 0x02;
 
-    } else if(CurrentValueX <= 0x0010)
+    } else if(CurrentValueX >= 0x0F00)
     {
         P9OUT |= BIT4;
                     P4OUT |= BIT7;
@@ -215,18 +215,21 @@ P1OUT = BUTTON;
 P1IE |=  BUTTON;                           //enable interrupt on port 1.1
 P1IES |= BUTTON;                            //sets as falling edge
 P1IFG &=~(BUTTON);                     //clear interrupt flag
-SteeringSet();
+//SteeringSet();
     //enter LPM4 mode and enable global interrupt
-_BIS_SR( GIE);
+_BIS_SR(GIE);
 while(1){
 while( UARTContrl == 1 ){
     __delay_cycles(5000);
     ADC12CTL0 |= ADC12ENC |ADC12SC;
     //CurrentValueX = ADCRead1();
-    //SteeringSetAnalogX();
+    UCA0IE |= UCRXIE;
+    SteeringSet();
     _BIS_SR( GIE);
     SteeringSetAnalogXY();
 }
+UCA0IE |= UCRXIE;
+_BIS_SR( GIE);
 }
 }
 
@@ -275,11 +278,11 @@ __interrupt void ADC12_ISR(void)
     case ADC12IV_ADC12INIFG:  break;        // Vector 10:  ADC12BIN
     case ADC12IV_ADC12IFG0:                 // Vector 12:  ADC12MEM0 Interrupt
         CurrentValueY = ADC12MEM0;
-        //SteeringSetAnalogXY();
+        SteeringSetAnalogXY();
         break;                                // Clear CPUOFF bit from 0(SR)
     case ADC12IV_ADC12IFG1:
         CurrentValueX = ADC12MEM1;
-        //SteeringSetAnalogXY();
+        SteeringSetAnalogXY();
         break;        // Vector 14:  ADC12MEM1
     case ADC12IV_ADC12IFG2:   break;        // Vector 16:  ADC12MEM2
     case ADC12IV_ADC12IFG3:   break;        // Vector 18:  ADC12MEM3
